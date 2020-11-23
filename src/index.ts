@@ -88,10 +88,11 @@ commands
       const name = getLine(message, 1, "the event name");
       const rawDate = getLine(message, 2, "the event date");
       const subtitle = getLine(message, 3, "the event subtitle");
-      const date = moment(rawDate, "YYYY-MM-DD").valueOf();
+      const date = moment(rawDate, "YYYY-MM-DD h:mma").valueOf();
       const event = new Event(id, name, date, subtitle);
       await eventService.createEvent(event);
       message.channel.send("Created event.");
+      message.channel.send(event.embed());
     } catch (err) {
       console.error(err);
       message.channel.send(`Error: ${err.message}`);
@@ -110,6 +111,24 @@ commands
       console.log(events);
       const list = events.map(event => `- ${event.id} (${event.name})`);
       message.channel.send(`Events:\n${list.join("\n")}`);
+    } catch (err) {
+      console.error(err);
+      message.channel.send(`Error: ${err.message}`);
+    }
+  });
+
+const EVENT_EMBED = "event embed";
+commands
+  .pipe(
+    command(EVENT_EMBED),
+    memberService.fromAdmin(),
+  )
+  .subscribe(async (message: Discord.Message) => {
+    try {
+      const id = getArg(message, CREATE_EVENT, 1, "the event ID");
+      const event = await eventService.getEvent(id);
+      const embed = event.embed();
+      message.channel.send(embed);
     } catch (err) {
       console.error(err);
       message.channel.send(`Error: ${err.message}`);

@@ -25,6 +25,15 @@ export class EventService {
     return events;
   }
 
+  public async getEvent(eventId: string): Promise<Event> {
+    const events = await this.getEvents();
+    const stored = events.filter(event => event.id === eventId);
+    if(stored.length < 1) {
+      throw new ReferenceError(`Couldn't find event with ID ${eventId}`);
+    }
+    return Event.fromStored(stored[0]);
+  }
+
   public async createEvent(event: Event): Promise<StoredEvent> {
     const stored = event.serialize();
     const events = await this.getEvents();
