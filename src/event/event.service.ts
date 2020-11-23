@@ -1,7 +1,7 @@
 import { Client } from "discord.js";
 import { DB } from "../db/DB";
 import { DatabaseSchema } from "../db/schema";
-import { EventSummary, StoredEvent, Event } from "./event.dto";
+import { StoredEvent, Event } from "./event.dto";
 
 export class EventService {
 
@@ -17,7 +17,7 @@ export class EventService {
     this.db = db;
   }
 
-  public async getEvents(): Promise<EventSummary[]> {
+  public async getEvents(): Promise<StoredEvent[]> {
     const events = await this.db.get("events");
     if(!events || !Array.isArray(events)) {
       return [];
@@ -26,13 +26,11 @@ export class EventService {
   }
 
   public async createEvent(event: Event): Promise<StoredEvent> {
-    const summary = event.summarize();
     const stored = event.serialize();
     const events = await this.getEvents();
-    events.push(summary);
-    console.log(events);
+    events.push(stored);
     await this.db.set("events", events);
-    return await this.db.setEvent(stored);
+    return stored;
   }
 
 }

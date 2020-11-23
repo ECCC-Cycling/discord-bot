@@ -17,10 +17,10 @@ export function getArg(
   split: string | RegExp = /\s+/,
 ): string {
   const args = message.content.slice(PREFIX.length + commandName.length).trim().split(split);
-  if(args.length < pos) {
+  if(args.length < pos - 1) {
     throw new ReferenceError(`Argument ${pos} missing: you must provide ${description}`);
   }
-  return args[pos];
+  return args[pos - 1];
 }
 
 export function getLine(

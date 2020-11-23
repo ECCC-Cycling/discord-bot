@@ -42,6 +42,40 @@ commands
     message.channel.send(`Admin: ${admin}`);
   });
 
+commands
+  .pipe(
+    command("db ls"),
+    memberService.fromAdmin(),
+  )
+  .subscribe(async (message: Discord.Message) => {
+    const keys = await db.client.list();
+    message.channel.send(keys);
+  });
+
+const DB_RM = "db rm";
+commands
+  .pipe(
+    command(DB_RM),
+    memberService.fromAdmin(),
+  )
+  .subscribe(async (message: Discord.Message) => {
+    const key = getArg(message, DB_RM, 1, "the database key to delete");
+    await db.client.delete(key);
+    message.channel.send(`Deleted ${key}.`);
+  });
+
+const DB_CAT = "db cat";
+commands
+  .pipe(
+    command(DB_CAT),
+    memberService.fromAdmin(),
+  )
+  .subscribe(async (message: Discord.Message) => {
+    const key = getArg(message, DB_CAT, 1, "the database key to read");
+    const val = await db.client.get(key);
+    message.channel.send("```\n"+JSON.stringify(val, null, 2)+"\n```");
+  });
+
 const CREATE_EVENT = "event create";
 commands
   .pipe(
@@ -83,6 +117,18 @@ commands
   });
 
 client.login(TOKEN);
+
+/*const DELETE_EVENT = "event delete";
+commands
+  .pipe(
+    command(DELETE_EVENT),
+    memberService.fromAdmin(),
+  )
+  .subscribe(async (message: Discord.Message) => {
+    try {
+      eventService.deleteEvent()
+    }
+  });*/
 
 
 const http = require('http');

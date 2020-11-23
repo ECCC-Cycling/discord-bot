@@ -1,7 +1,7 @@
-import { EventSummary } from "../event/event.dto";
+import { StoredEvent } from "../event/event.dto";
 
 export interface DatabaseSchema {
   
-  events: EventSummary[];
+  events: StoredEvent[];
 
 }

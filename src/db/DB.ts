@@ -5,7 +5,7 @@ const Client = _Client as any;
 
 export class DB<Schema> {
 
-  private readonly client;
+  public readonly client;
 
   public constructor() {
     this.client = new Client();
@@ -18,15 +18,6 @@ export class DB<Schema> {
   public async set<K extends keyof Schema>(key: K, val: Schema[K]): Promise<Schema[K]> {
       await this.client.set(key, val);
       return val;
-  }
-
-  public async getEvent(eventId: string): Promise<StoredEvent> {
-    return this.client.get(`event-${eventId}`);
-  }
-
-  public async setEvent(event: StoredEvent): Promise<StoredEvent> {
-    await this.client.set(`event-${event.id}`, event);
-    return event;
   }
 
 }
