@@ -17,7 +17,7 @@ export class MemberService {
   }
 
   public fromUsers(validUsers: Member[]) {
-    return filter((message: Message) => {
+    return filter((message: Message): boolean => {
       const author = message.author;
       return validUsers.some(user => user.is(author));
     });

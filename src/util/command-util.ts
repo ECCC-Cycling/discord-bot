@@ -3,7 +3,7 @@ import { filter } from "rxjs/operators";
 import { PREFIX } from "../config";
 
 export function command(name: string) {
-  return filter((message: Message) => message.content.startsWith(`${PREFIX}${name} `)
+  return filter((message: Message): boolean => message.content.startsWith(`${PREFIX}${name} `)
     || message.content.startsWith(`${PREFIX}${name}\n`)
     || message.content === `${PREFIX}${name}`
   );

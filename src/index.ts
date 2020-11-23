@@ -10,6 +10,8 @@ import { MemberService } from "./member/member.service";
 import { EventService } from "./event/event.service";
 import { PREFIX } from "./config";
 
+const TOKEN = process.env.DISCORD_TOKEN;
+
 const db = new DB<DatabaseSchema>();
 
 const client = new Discord.Client({
@@ -26,9 +28,9 @@ const eventService = new EventService(
     client,
 );
 
-const messages = fromEvent(client, "message");
+const messages = fromEvent<Discord.Message>(client, "message");
 const commands = messages.pipe(
-    filter(message => { message.content.startsWith(PREFIX) }),
+    filter((message: Discord.Message) => message.content.startsWith(PREFIX)),
 );
 
 commands
@@ -48,7 +50,7 @@ commands
   )
   .subscribe(async (message: Discord.Message) => {
     try {
-      const id = getArg(message, CREATE_EVENT, 1, "the event ID");
+      const id = getArg(message, CREATE_EVENT, 1, "the event ID", /\n/);
       const name = getLine(message, 1, "the event name");
       const rawDate = getLine(message, 2, "the event date");
       const subtitle = getLine(message, 3, "the event subtitle");
@@ -57,6 +59,37 @@ commands
       await eventService.createEvent(event);
       message.channel.send("Created event.");
     } catch (err) {
+      console.error(err);
       message.channel.send(`Error: ${err.message}`);
     }
   });
+
+const LIST_EVENTS = "event list";
+commands
+  .pipe(
+    command(LIST_EVENTS),
+    memberService.fromAdmin(),
+  )
+  .subscribe(async (message: Discord.Message) => {
+    try {
+      const events = await eventService.getEvents();
+      console.log(events);
+      const list = events.map(event => `- ${event.id} (${event.name})`);
+      message.channel.send(`Events:\n${list.join("\n")}`);
+    } catch (err) {
+      console.error(err);
+      message.channel.send(`Error: ${err.message}`);
+    }
+  });
+
+client.login(TOKEN);
+
+
+const http = require('http');
+const server = http.createServer((req, res) => {
+  res.writeHead(200);
+  res.end('ok');
+});
+server.listen(3001);
+
+console.log("Starting server.");
