@@ -1,8 +1,9 @@
 import Discord from "discord.js";
-import { fromEvent } from "rxjs";
+import { Observable, fromEvent } from "rxjs";
 import { filter } from "rxjs/operators";
 import moment from "moment";
 import { command, getArg, getLine } from "./util/command-util";
+import { isGuildTextChannel } from "./util/channel";
 import { DB } from "./db/DB";
 import { DatabaseSchema } from "./db/schema";
 import { Event } from "./event/event.dto";
@@ -32,6 +33,19 @@ const messages = fromEvent<Discord.Message>(client, "message");
 const commands = messages.pipe(
     filter((message: Discord.Message) => message.content.startsWith(PREFIX)),
 );
+
+interface MessageReactionData {
+  reaction: Discord.MessageReaction;
+  user: Discord.User | Discord.PartialUser;
+}
+
+const addedReactions = new Observable<MessageReactionData>(subscriber => {
+  client.on("messageReactionAdd", (reaction, user) => {
+    subscriber.next({ reaction, user });
+  });
+});
+
+const removedReactions = fromEvent<Discord.MessageReaction>(client, "messageReactionRemove");
 
 commands
   .pipe(
@@ -74,6 +88,20 @@ commands
     const key = getArg(message, DB_CAT, 1, "the database key to read");
     const val = await db.client.get(key);
     message.channel.send("```\n"+JSON.stringify(val, null, 2)+"\n```");
+  });
+
+const CHANNEL_INFO = "i channel";
+commands
+  .pipe(
+    command(CHANNEL_INFO),
+  )
+  .subscribe(async (message: Discord.Message) => {
+    const channel = message.mentions.channels.first();
+    if(!channel) {
+      message.channel.send("No channel found.");
+      return;
+    }
+    message.channel.send(`Channel ${channel.name}'s ID is \`${channel.id}\`, and is in category ${channel.parent} (\`${channel.parentID}\`)'`);
   });
 
 const CREATE_EVENT = "event create";
@@ -134,6 +162,36 @@ commands
       message.channel.send(`Error: ${err.message}`);
     }
   });
+
+const EVENT_CHANNELS_CREATE = "event channel create";
+commands
+  .pipe(
+    command(EVENT_CHANNELS_CREATE),
+    memberService.fromAdmin(),
+  )
+  .subscribe(async (message: Discord.Message) => {
+    const id = getArg(message, CREATE_EVENT, 1, "the event ID");
+    const event = await eventService.getEvent(id);
+    const channel = message.channel;
+    if(!isGuildTextChannel(channel) || !channel.guild.available) {
+      message.channel.send("This command only works inside the ECCC server.");
+      throw new Error(`${EVENT_CHANNELS_CREATE} run outside of the server.`);
+    }
+    const server = channel.guild;
+    //server.channels.create(``)
+  });
+
+/*addedReactions
+  .subscribe(async (data: MessageReactionData) => {
+    if(data.reaction.partial) {
+      try {
+        await data.reaction.fetch();
+      } catch (err) {
+        console.error(`Couldn't fetch message on reaction: `, err);
+      }
+    }
+    console.log(`${data.reaction.message.author}'s message was reacted to with ${data.reaction.emoji.name}'`);
+  });*/
 
 client.login(TOKEN);
 
