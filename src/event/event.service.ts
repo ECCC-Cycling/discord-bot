@@ -42,4 +42,17 @@ export class EventService {
     return stored;
   }
 
+  public async updateEvent(event: Event): Promise<StoredEvent> {
+    const stored = event.serialize();
+    const events = await this.getEvents();
+    const updatedEvents = events.map(e => {
+      if(e.id === stored.id) {
+        return stored;
+      }
+      return e;
+    });
+    await this.db.set("events", updatedEvents);
+    return stored;
+  }
+
 }

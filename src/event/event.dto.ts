@@ -10,6 +10,12 @@ export interface EventSummary {
 
 export interface StoredEvent extends EventSummary {
   subtitle: string;
+
+  announceChannel?: string;
+
+  chatChannel?: string;
+
+  voiceChannel?: string;
 }
 
 export class Event {
@@ -32,19 +38,51 @@ export class Event {
 
   private readonly subtitle: string;
 
+  private readonly announceChannel?: string;
+
+  private readonly chatChannel?: string;
+
+  private readonly voiceChannel?: string;
+
   public constructor(
     id: string,
     name: string,
     date: number,
     subtitle: string,
+    additional?: StoredEvent,
   ) {
     this.id = id;
     this.name = name;
     this.date = date;
     this.subtitle = subtitle;
+    if(additional) {
+      this.announceChannel = additional.announceChannel;
+      this.chatChannel = additional.chatChannel;
+      this.voiceChannel = additional.voiceChannel;
+    }
   }
 
-  public embed(): MessageEmbed {
+  public setAnnounceChannel(channelId: string): Event {
+    const data = this.serialize();
+    data.announceChannel = channelId;
+    return Event.fromStored(data);
+  }
+
+  public setChatChannel(channelId: string): Event {
+    const data = this.serialize();
+    data.chatChannel = channelId;
+    return Event.fromStored(data);
+  }
+
+  public setVoiceChannel(channelId: string): Event {
+    const data = this.serialize();
+    data.voiceChannel = channelId;
+    return Event.fromStored(data);
+  }
+
+  public embed(
+    react: boolean = false,
+  ): MessageEmbed {
     let embed = new MessageEmbed()
       .setColor("#fecc02")
       .setTitle(this.name)
@@ -57,10 +95,12 @@ export class Event {
           value: moment(this.date).format("dddd, MMMM Do YYYY h:mma") + " EST",
         },
       );
-    embed.addField(
-      `\u200B`,
-      `React with ${TICK_YES.mention()} to join this event's announcement and chat channels`,
-    );
+    if(react) {
+      embed.addField(
+        `\u200B`,
+        `React with ${TICK_YES.mention()} to join this event's announcement and chat channels`,
+      );
+    }
     return embed;
   }
 
@@ -76,6 +116,9 @@ export class Event {
     return {
       ...this.summarize(),
       subtitle: this.subtitle,
+      announceChannel: this.announceChannel,
+      chatChannel: this.chatChannel,
+      voiceChannel: this.voiceChannel,
     };
   }
 

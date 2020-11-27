@@ -9,7 +9,17 @@ import { DatabaseSchema } from "./db/schema";
 import { Event } from "./event/event.dto";
 import { MemberService } from "./member/member.service";
 import { EventService } from "./event/event.service";
-import { PREFIX } from "./config";
+import {
+  ATLAS_ROLE_ID,
+  SERVER_ADMIN_ROLE_ID,
+  MODERATOR_ROLE_ID,
+  LOCKED_TEXT_CHANNEL,
+  LOCKED_VOICE_CHANNEL,
+  READ_WRITE_PERMISSIONS,
+  MODERATOR_PERMISSIONS,
+  MODERATOR_VOICE_PERMISSIONS,
+} from "./roles";
+import { PREFIX, EVENTS_CATEGORY_ID } from "./config";
 
 const TOKEN = process.env.DISCORD_TOKEN;
 
@@ -170,7 +180,7 @@ commands
     memberService.fromAdmin(),
   )
   .subscribe(async (message: Discord.Message) => {
-    const id = getArg(message, CREATE_EVENT, 1, "the event ID");
+    const id = getArg(message, EVENT_CHANNELS_CREATE, 1, "the event ID");
     const event = await eventService.getEvent(id);
     const channel = message.channel;
     if(!isGuildTextChannel(channel) || !channel.guild.available) {
@@ -178,7 +188,47 @@ commands
       throw new Error(`${EVENT_CHANNELS_CREATE} run outside of the server.`);
     }
     const server = channel.guild;
-    //server.channels.create(``)
+    const announceChannel: Discord.TextChannel = await server.channels.create(`${id}`, {
+      type: "text",
+      topic: "Announcements and event instructions.",
+      parent: EVENTS_CATEGORY_ID,
+      permissionOverwrites: [
+        LOCKED_TEXT_CHANNEL,
+        { id: ATLAS_ROLE_ID, allow: READ_WRITE_PERMISSIONS },
+        { id: SERVER_ADMIN_ROLE_ID, allow: MODERATOR_PERMISSIONS },
+        { id: MODERATOR_ROLE_ID, allow: MODERATOR_PERMISSIONS },
+      ],
+    });
+    const chatChannel: Discord.TextChannel = await server.channels.create(`${id}-chat`, {
+      type: "text",
+      topic: "Participant chat before/during the event",
+      parent: EVENTS_CATEGORY_ID,
+      permissionOverwrites: [
+        LOCKED_TEXT_CHANNEL,
+        { id: ATLAS_ROLE_ID, allow: READ_WRITE_PERMISSIONS },
+        { id: SERVER_ADMIN_ROLE_ID, allow: MODERATOR_PERMISSIONS },
+        { id: MODERATOR_ROLE_ID, allow: MODERATOR_PERMISSIONS },
+      ],
+    });
+    const voiceChannel = await server.channels.create(`${id}`, {
+      type: "voice",
+      parent: EVENTS_CATEGORY_ID,
+      permissionOverwrites: [
+        LOCKED_VOICE_CHANNEL,
+        { id: SERVER_ADMIN_ROLE_ID, allow: MODERATOR_VOICE_PERMISSIONS },
+        { id: MODERATOR_ROLE_ID, allow: MODERATOR_VOICE_PERMISSIONS },
+      ],
+    });
+    announceChannel.send(event.embed());
+    announceChannel.send(`ECCC volunteers and the host school will provide event announcements in this channel. Participants can chat in ${chatChannel} before and during the event.`);
+    chatChannel.send(event.embed());
+    chatChannel.send(`See ${announceChannel} for event announcements by ECCC volunteers and the host school.`);
+    const updatedEvent = event
+      .setAnnounceChannel(announceChannel.id)
+      .setChatChannel(chatChannel.id)
+      .setVoiceChannel(voiceChannel.id);
+    await eventService.updateEvent(updatedEvent);
+    message.channel.send(`Created ${announceChannel} and ${chatChannel}`);
   });
 
 /*addedReactions
